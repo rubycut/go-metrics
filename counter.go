@@ -9,6 +9,8 @@ type Counter interface {
 	Dec(int64)
 	Inc(int64)
 	Snapshot() Counter
+	Engage_reset_on_submit()
+	Get_reset_on_submit() bool
 }
 
 // GetOrRegisterCounter returns an existing Counter or constructs and registers
@@ -25,7 +27,7 @@ func NewCounter() Counter {
 	if UseNilMetrics {
 		return NilCounter{}
 	}
-	return &StandardCounter{0}
+	return &StandardCounter{0,false}
 }
 
 // NewRegisteredCounter constructs and registers a new StandardCounter.
@@ -62,6 +64,9 @@ func (CounterSnapshot) Inc(int64) {
 // Snapshot returns the snapshot.
 func (c CounterSnapshot) Snapshot() Counter { return c }
 
+func (c CounterSnapshot) Engage_reset_on_submit() { }
+func (c CounterSnapshot) Get_reset_on_submit() bool { return false }
+
 // NilCounter is a no-op Counter.
 type NilCounter struct{}
 
@@ -77,6 +82,10 @@ func (NilCounter) Dec(i int64) {}
 // Inc is a no-op.
 func (NilCounter) Inc(i int64) {}
 
+func (NilCounter) Engage_reset_on_submit() { }
+func (NilCounter) Get_reset_on_submit() bool { return false }
+
+
 // Snapshot is a no-op.
 func (NilCounter) Snapshot() Counter { return NilCounter{} }
 
@@ -84,8 +93,15 @@ func (NilCounter) Snapshot() Counter { return NilCounter{} }
 // sync/atomic package to manage a single int64 value.
 type StandardCounter struct {
 	count int64
+	Reset_on_submit bool
 }
 
+func (c *StandardCounter) Engage_reset_on_submit() {
+  c.Reset_on_submit = true
+}
+func (c *StandardCounter) Get_reset_on_submit() bool {
+	return c.Reset_on_submit
+}
 // Clear sets the counter to zero.
 func (c *StandardCounter) Clear() {
 	atomic.StoreInt64(&c.count, 0)

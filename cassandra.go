@@ -17,7 +17,10 @@ func Cassandra(r Registry, d time.Duration, cassandra_cluster *gocql.ClusterConf
 				        server, name, time.Now(), float32(metric.Count())).Exec() ; err != nil {
 				  panic(err)
 				}
-				// c.Clear() but this would reset all counters, need option on counter for this
+				if metric.Get_reset_on_submit() {
+					metric.Clear()
+				}
+
 			case Gauge:
 				if err := session.Query(`INSERT INTO metrics2(server,metric, time, v) VALUES
 				  (?, ?, ?, ?) USING TTL 1209600`,
